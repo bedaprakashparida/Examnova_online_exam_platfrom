@@ -1,0 +1,17 @@
+venv/
+__pycache__/
+*.pyc
+
+backend/qr_exam.db
+backend/*.db
+
+frontend/node_modules/
+frontend/dist/
+
+.env
+.env.*
+
+.vscode/
+.idea/
+
+.DS_Store
