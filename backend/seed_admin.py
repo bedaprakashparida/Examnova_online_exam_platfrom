@@ -6,8 +6,8 @@ from app.services.auth_service import hash_password, get_teacher_by_email
 
 db = Session(engine)
 
-email = "admin@qrexam.com"
-password = "ExamNovaAdm@2026#"
+email = "bedaprakashparida8@gmail.com"
+password = "Admin@12345"
 name = "Super Admin"
 
 existing = db.query(Teacher).filter(Teacher.email == email).first()
