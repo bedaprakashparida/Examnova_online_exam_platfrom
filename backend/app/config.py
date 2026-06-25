@@ -35,11 +35,21 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
-# Vercel Serverless Function compatibility:
-# Copy the bundled SQLite DB to /tmp/ so it's writable
 import os
 import shutil
 
+# Resolve relative SQLite database URL to absolute path relative to the backend directory
+if settings.DATABASE_URL.startswith("sqlite:///"):
+    db_file = settings.DATABASE_URL.replace("sqlite:///", "")
+    if db_file.startswith("./"):
+        db_file = db_file[2:]
+    if not os.path.isabs(db_file):
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        absolute_db_path = os.path.abspath(os.path.join(base_dir, db_file))
+        settings.DATABASE_URL = f"sqlite:///{absolute_db_path}"
+
+# Vercel Serverless Function compatibility:
+# Copy the bundled SQLite DB to /tmp/ so it's writable
 if os.environ.get("VERCEL") and settings.DATABASE_URL.startswith("sqlite"):
     tmp_db_path = "/tmp/qr_exam.db"
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -49,8 +59,8 @@ if os.environ.get("VERCEL") and settings.DATABASE_URL.startswith("sqlite"):
     for path in [
         os.path.join(root_dir, "qr_exam.db"),
         os.path.join(base_dir, "qr_exam.db"),
-        "./qr_exam.db",
-        "./backend/qr_exam.db"
+        os.path.abspath("./qr_exam.db"),
+        os.path.abspath("./backend/qr_exam.db")
     ]:
         if os.path.exists(path):
             src_db = path
@@ -64,4 +74,5 @@ if os.environ.get("VERCEL") and settings.DATABASE_URL.startswith("sqlite"):
             except Exception as e:
                 print(f"[VERCEL] Error copying SQLite DB: {e}")
         settings.DATABASE_URL = f"sqlite:///{tmp_db_path}"
+
 
