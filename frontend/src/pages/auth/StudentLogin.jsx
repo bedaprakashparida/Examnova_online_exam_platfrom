@@ -29,7 +29,7 @@ export default function StudentLogin() {
     try {
       await login(email, password, 'student')
       toast.success('Logged in successfully!')
-      navigate('/student/dashboard')
+      navigate('/student')
     } catch (err) {
       toast.error(errMsg(err))
     } finally {
