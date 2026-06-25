@@ -34,3 +34,34 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Vercel Serverless Function compatibility:
+# Copy the bundled SQLite DB to /tmp/ so it's writable
+import os
+import shutil
+
+if os.environ.get("VERCEL") and settings.DATABASE_URL.startswith("sqlite"):
+    tmp_db_path = "/tmp/qr_exam.db"
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    root_dir = os.path.dirname(base_dir)
+    
+    src_db = None
+    for path in [
+        os.path.join(root_dir, "qr_exam.db"),
+        os.path.join(base_dir, "qr_exam.db"),
+        "./qr_exam.db",
+        "./backend/qr_exam.db"
+    ]:
+        if os.path.exists(path):
+            src_db = path
+            break
+            
+    if src_db:
+        if not os.path.exists(tmp_db_path):
+            try:
+                shutil.copy2(src_db, tmp_db_path)
+                print(f"[VERCEL] Copied SQLite DB from {src_db} to {tmp_db_path}")
+            except Exception as e:
+                print(f"[VERCEL] Error copying SQLite DB: {e}")
+        settings.DATABASE_URL = f"sqlite:///{tmp_db_path}"
+
