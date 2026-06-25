@@ -27,7 +27,8 @@ export default function StudentLogin() {
     e.preventDefault()
     setLoading(true)
     try {
-      await login(email, password, 'student')
+      const { data } = await authAPI.loginStudent({ email, password })
+      login(data)
       toast.success('Logged in successfully!')
       navigate('/student')
     } catch (err) {
