@@ -187,15 +187,8 @@ def login_request_otp(payload: TeacherLogin, db: Session = Depends(get_db)):
 # Legacy aliases (keep old frontend URLs working)
 @router.post("/login/admin/request-otp")
 def admin_login_request_otp(payload: TeacherLogin, db: Session = Depends(get_db)):
-    try:
-        return login_request_otp(payload, db)
-    except Exception as e:
-        import traceback
-        return {
-            "error_type": type(e).__name__,
-            "error": str(e),
-            "traceback": traceback.format_exc()
-        }
+    return login_request_otp(payload, db)
+
 
 
 @router.post("/login/teacher/request-otp")
