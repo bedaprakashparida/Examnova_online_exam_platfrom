@@ -58,6 +58,7 @@ EMAIL_TEMPLATE = """\
       <div class="info-row"><span class="info-label">Duration</span><span>{duration} minutes</span></div>
       <div class="info-row"><span class="info-label">Start</span><span>{start_time}</span></div>
       <div class="info-row"><span class="info-label">End</span><span>{end_time}</span></div>
+      <div class="info-row"><span class="info-label">Login Email</span><span>{student_email}</span></div>
     </div>
     <div class="qr-section">
       <p>Your unique exam access QR code:</p>
@@ -67,6 +68,11 @@ EMAIL_TEMPLATE = """\
     <div class="note">
       <strong>Important:</strong> Your exam link is unique to you — do not share it.
       Keep it safe. The link expires after the exam ends.
+    </div>
+    <div class="note" style="background:#e0f2fe;border-left:4px solid #0284c7;color:#0369a1;margin-top:16px;">
+      <strong>Dashboard Access:</strong> If your direct link displays an Access Denied error (e.g. if the link has expired), you can log in to the Student Dashboard using:
+      <br/>• Email: <code>{student_email}</code>
+      <br/>• Password: <em>(Use your student account password)</em>
     </div>
   </div>
   <div class="footer">
@@ -184,6 +190,7 @@ def send_exam_invitation_sync(
         html = EMAIL_TEMPLATE.format(
             app_name=settings.APP_NAME,
             student_name=student_name,
+            student_email=student_email,
             exam_title=exam_title,
             duration=duration,
             start_time=start_time.strftime("%d %b %Y, %I:%M %p"),
