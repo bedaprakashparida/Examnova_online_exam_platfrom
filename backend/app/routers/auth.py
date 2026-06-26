@@ -31,7 +31,7 @@ def _generate_otp() -> str:
     return ''.join(random.choices(string.digits, k=6))
 
 
-def _send_otp_email(to_email: str, name: str, otp: str, purpose: str = "login") -> bool:
+def _send_otp_email(to_email: str, name: str, otp: str, purpose: str = "login", smtp_user: str = None, smtp_password: str = None) -> bool:
     import smtplib, ssl
     from email.mime.multipart import MIMEMultipart
     from email.mime.text import MIMEText
@@ -50,17 +50,23 @@ def _send_otp_email(to_email: str, name: str, otp: str, purpose: str = "login") 
       <p style="color:#94a3b8;font-size:14px">Expires in <strong>{OTP_EXPIRY_MINUTES} minutes</strong>. Do not share.</p>
     </div>
     """
-    smtp_pass = settings.SMTP_PASSWORD.replace(" ", "")
+    user = smtp_user or settings.SMTP_USER
+    password = smtp_password or settings.SMTP_PASSWORD
+    if not user or not password:
+        print(f"[OTP FAIL] -> {to_email}: No SMTP credentials configured")
+        return False
+
+    smtp_pass = password.replace(" ", "")
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = f"ExamNova <{settings.SMTP_USER}>"
+    msg["From"] = f"{settings.SMTP_FROM_NAME} <{user}>"
     msg["To"] = to_email
     msg.attach(MIMEText(html, "html", "utf-8"))
     import ssl as _ssl
     ctx = _ssl.create_default_context()
     try:
         with smtplib.SMTP_SSL(settings.SMTP_HOST, settings.SMTP_PORT, context=ctx, timeout=30) as s:
-            s.login(settings.SMTP_USER, smtp_pass)
+            s.login(user, smtp_pass)
             s.send_message(msg)
         print(f"[OTP SENT] -> {to_email}")
         return True
@@ -169,7 +175,10 @@ def login_request_otp(payload: TeacherLogin, db: Session = Depends(get_db)):
     teacher.otp_expiry = expiry
     db.commit()
 
-    sent = _send_otp_email(teacher.email, teacher.name, otp, "sign in")
+    sent = _send_otp_email(
+        teacher.email, teacher.name, otp, "sign in",
+        smtp_user=teacher.smtp_email, smtp_password=teacher.smtp_password
+    )
     # Even if email fails, return the OTP in the response so admin can still log in
     # In production you would hide the otp field
     resp = {
@@ -364,10 +373,17 @@ def resend_otp(payload: dict, db: Session = Depends(get_db)):
     expiry = datetime.utcnow() + timedelta(minutes=OTP_EXPIRY_MINUTES)
     teacher.otp_code = otp; teacher.otp_expiry = expiry
     db.commit()
-    sent = _send_otp_email(email, teacher.name, otp, "sign in")
+    sent = _send_otp_email(
+        email, teacher.name, otp, "sign in",
+        smtp_user=teacher.smtp_email, smtp_password=teacher.smtp_password
+    )
+    resp = {
+        "message": f"OTP resent to {email}" if sent else "Email failed — use the OTP shown below",
+        "email_sent": sent
+    }
     if not sent:
-        raise HTTPException(status_code=500, detail="Could not send OTP email")
-    return {"message": f"OTP resent to {email}"}
+        resp["otp"] = otp
+    return resp
 
 
 @router.post("/forgot-password/request-otp")
@@ -385,7 +401,10 @@ def forgot_password_request_otp(payload: dict, db: Session = Depends(get_db)):
     teacher.otp_expiry = expiry
     db.commit()
 
-    sent = _send_otp_email(email, teacher.name, otp, "reset your password")
+    sent = _send_otp_email(
+        email, teacher.name, otp, "reset your password",
+        smtp_user=teacher.smtp_email, smtp_password=teacher.smtp_password
+    )
     resp = {"message": f"OTP sent to {email}" if sent else "Email failed - use the OTP shown below"}
     if not sent:
         resp["otp"] = otp
