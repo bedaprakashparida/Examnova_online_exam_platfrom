@@ -65,7 +65,8 @@ def generate_invitation_assets(
     student_id: int,
     exam_id: int,
     invitation_id: int,
-    exam_end_time: datetime
+    exam_end_time: datetime,
+    frontend_url: str = None
 ) -> dict:
     """
     Generate all assets for an exam invitation:
@@ -74,7 +75,9 @@ def generate_invitation_assets(
     - QR code image (base64 PNG)
     """
     token = generate_qr_token(student_id, exam_id, invitation_id, exam_end_time)
-    exam_link = generate_exam_link(token)
+    
+    base_url = frontend_url or settings.FRONTEND_URL
+    exam_link = f"{base_url}/exam/access?token={token}"
     qr_image = generate_qr_code_image(exam_link)
 
     return {

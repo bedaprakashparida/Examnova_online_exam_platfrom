@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import datetime, timezone
@@ -32,6 +32,20 @@ def _get_teacher_smtp(db: Session, teacher_id: int) -> dict:
     return {"smtp_user": None, "smtp_password": None, "sender_name": None}
 
 
+def _get_frontend_url(request: Request) -> str:
+    from app.config import settings
+    origin = request.headers.get("origin")
+    if origin:
+        return origin.rstrip("/")
+    referer = request.headers.get("referer")
+    if referer:
+        from urllib.parse import urlparse
+        parsed = urlparse(referer)
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return settings.FRONTEND_URL
+
+
+
 # ── Test SMTP ──────────────────────────────────────────────────────────────────
 @router.get("/test-smtp")
 def test_smtp(
@@ -52,6 +66,7 @@ def test_smtp(
 @router.post("/generate/{exam_id}", status_code=201)
 def generate_invitations(
     exam_id: int,
+    request: Request,
     class_id: Optional[int] = Query(None, description="Filter to one class only"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin),
@@ -96,6 +111,7 @@ def generate_invitations(
                 exam_id=exam_id,
                 invitation_id=inv.id,
                 exam_end_time=exam.end_time,
+                frontend_url=_get_frontend_url(request),
             )
             inv.qr_token = assets["qr_token"]
             inv.unique_exam_link = assets["unique_exam_link"]
@@ -119,6 +135,7 @@ def generate_invitations(
 def generate_single_invitation(
     exam_id: int,
     student_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin),
 ):
@@ -146,6 +163,7 @@ def generate_single_invitation(
         exam_id=exam_id,
         invitation_id=inv.id,
         exam_end_time=exam.end_time,
+        frontend_url=_get_frontend_url(request),
     )
     inv.qr_token = assets["qr_token"]
     inv.unique_exam_link = assets["unique_exam_link"]
