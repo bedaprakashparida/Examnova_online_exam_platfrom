@@ -70,9 +70,9 @@ EMAIL_TEMPLATE = """\
       Keep it safe. The link expires after the exam ends.
     </div>
     <div class="note" style="background:#e0f2fe;border-left:4px solid #0284c7;color:#0369a1;margin-top:16px;">
-      <strong>Dashboard Access:</strong> If your direct link displays an Access Denied error (e.g. if the link has expired), you can log in to the Student Dashboard using:
+      <strong>Dashboard Access Credentials:</strong> If your direct link displays an Access Denied error, you can log in to the Student Dashboard directly using:
       <br/>• Email: <code>{student_email}</code>
-      <br/>• Password: <em>(Use your student account password)</em>
+      <br/>• Password: <code>{student_password}</code>
     </div>
   </div>
   <div class="footer">
@@ -169,6 +169,7 @@ def send_exam_invitation_sync(
     end_time: datetime,
     exam_link: str,
     qr_code_base64: str,
+    student_password: str = "student123",
     smtp_user: str = None,
     smtp_password: str = None,
     sender_name: str = None,
@@ -191,6 +192,7 @@ def send_exam_invitation_sync(
             app_name=settings.APP_NAME,
             student_name=student_name,
             student_email=student_email,
+            student_password=student_password,
             exam_title=exam_title,
             duration=duration,
             start_time=start_time.strftime("%d %b %Y, %I:%M %p"),

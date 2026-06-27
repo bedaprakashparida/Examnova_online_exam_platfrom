@@ -36,6 +36,7 @@ def create_student(
         email=payload.email,
         roll_number=payload.roll_number,
         password_hash=hash_password(payload.password),
+        plain_password=payload.password,
         class_id=getattr(payload, 'class_id', None),
     )
     db.add(student)
@@ -153,6 +154,7 @@ async def bulk_upload_students(
                 email=email,
                 roll_number=roll,
                 password_hash=hash_password(temp_password),
+                plain_password=temp_password,
                 class_id=class_id,
             )
             db.add(student)
@@ -190,6 +192,7 @@ def reset_student_password(
 
     from app.services.auth_service import hash_password
     student.password_hash = hash_password(password)
+    student.plain_password = password
     db.commit()
     return {"message": "Password reset successfully"}
 

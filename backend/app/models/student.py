@@ -12,6 +12,7 @@ class Student(Base):
     email = Column(String(255), unique=True, index=True, nullable=False)
     roll_number = Column(String(100), unique=True, nullable=True)
     password_hash = Column(String(255), nullable=False)
+    plain_password = Column(String(100), nullable=True)
     profile_photo = Column(Text, nullable=True)
     class_id = Column(Integer, ForeignKey("classrooms.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
