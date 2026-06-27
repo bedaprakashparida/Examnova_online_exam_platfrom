@@ -191,6 +191,7 @@ async def send_invitations_email(
     background_tasks: BackgroundTasks,
     request: Request,
     class_id: Optional[int] = Query(None, description="Send only to students in this class"),
+    pending_only: bool = Query(False, description="Send only to students who have not received the email yet"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin),
 ):
@@ -212,6 +213,8 @@ async def send_invitations_email(
         ExamInvitation.exam_id == exam_id,
         ExamInvitation.qr_code.isnot(None),
     )
+    if pending_only:
+        inv_query = inv_query.filter(ExamInvitation.email_sent == False)
     invitations = inv_query.all()
 
     if not invitations:

@@ -141,8 +141,11 @@ export const invitationsAPI = {
     api.post(`/invitations/generate/${examId}` + (classId ? `?class_id=${classId}` : '')),
   generateSingle: (examId, studentId) =>
     api.post(`/invitations/generate/single/${examId}/${studentId}`),
-  sendEmails: (examId, classId = null) =>
-    api.post(`/invitations/send-email/${examId}` + (classId ? `?class_id=${classId}` : '')),
+  sendEmails: (examId, classId = null, pendingOnly = false) => {
+    let url = `/invitations/send-email/${examId}?pending_only=${pendingOnly}`;
+    if (classId) url += `&class_id=${classId}`;
+    return api.post(url);
+  },
   resendSingle: (invitationId) =>
     api.post(`/invitations/send-email/single/${invitationId}`),
   verifyQR: (token) => api.post('/invitations/verify-qr', { token }),

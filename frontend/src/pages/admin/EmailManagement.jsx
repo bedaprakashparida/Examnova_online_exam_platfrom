@@ -67,14 +67,15 @@ export default function EmailManagement() {
     }
   }
 
-  const handleSendAll = async () => {
+  const handleSendAll = async (pendingOnly = false) => {
     const classLabel = selectedClassId
       ? classes.find(c => c.id === selectedClassId)?.name || 'selected class'
       : 'all students'
-    if (!confirm(`Send invitation emails to ${classLabel}?`)) return
+    const typeLabel = pendingOnly ? 'pending' : 'all';
+    if (!confirm(`Send invitation emails to ${typeLabel} students in ${classLabel}?`)) return
     setSending(true)
     try {
-      const { data } = await invitationsAPI.sendEmails(examId, selectedClassId)
+      const { data } = await invitationsAPI.sendEmails(examId, selectedClassId, pendingOnly)
       toast.success(data.message || `Sending to ${data.count} students…`)
       setTimeout(load, 4000)
     } catch (err) {
@@ -196,12 +197,21 @@ export default function EmailManagement() {
           </button>
 
           <button
-            onClick={handleSendAll}
-            disabled={sending || !hasQR}
+            onClick={() => handleSendAll(true)}
+            disabled={sending || !hasQR || pendingCount === 0}
             className="btn-secondary flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <PaperAirplaneIcon className="w-4 h-4" />
-            {sending ? 'Sending…' : 'Send Invitations'}
+            {sending ? 'Sending…' : 'Send to Pending Only'}
+          </button>
+
+          <button
+            onClick={() => handleSendAll(false)}
+            disabled={sending || !hasQR}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-white bg-violet-600 hover:bg-violet-700 active:bg-violet-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm"
+          >
+            <ArrowPathIcon className="w-4 h-4" />
+            {sending ? 'Sending…' : 'Force Resend to All'}
           </button>
         </div>
 
