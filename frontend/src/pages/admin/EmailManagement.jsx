@@ -95,6 +95,16 @@ export default function EmailManagement() {
     }
   }
 
+  const handleGenerateSingleQR = async (studentId) => {
+    try {
+      await invitationsAPI.generateSingle(examId, studentId)
+      toast.success('QR Code generated successfully!')
+      load()
+    } catch (err) {
+      toast.error(errMsg(err))
+    }
+  }
+
   const sentCount   = displayed.filter(i => i.email_sent).length
   const hasQR       = displayed.some(i => i.qr_code)
   const pendingCount = displayed.length - sentCount
@@ -318,15 +328,25 @@ export default function EmailManagement() {
 
                       {/* Actions */}
                       <td className="table-cell">
-                        <button
-                          onClick={() => handleResend(inv.id)}
-                          disabled={!inv.qr_code}
-                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
-                            bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400
-                            hover:bg-violet-100 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <ArrowPathIcon className="w-3.5 h-3.5" /> Resend
-                        </button>
+                        {inv.qr_code ? (
+                          <button
+                            onClick={() => handleResend(inv.id)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
+                              bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400
+                              hover:bg-violet-100 transition-all cursor-pointer"
+                          >
+                            <ArrowPathIcon className="w-3.5 h-3.5" /> Resend
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleGenerateSingleQR(inv.student_id)}
+                            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium
+                              bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400
+                              hover:bg-emerald-100 transition-all cursor-pointer"
+                          >
+                            <QrCodeIcon className="w-3.5 h-3.5" /> Generate QR
+                          </button>
+                        )}
                       </td>
                     </tr>
                   )

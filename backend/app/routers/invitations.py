@@ -402,36 +402,61 @@ def get_exam_invitations(
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin),
 ):
-    invitations = db.query(ExamInvitation).filter(
-        ExamInvitation.exam_id == exam_id
-    ).all()
+    student_query = db.query(Student)
+    if current_user.get("role") != "admin":
+        from app.models.classroom import Classroom
+        student_query = student_query.join(Classroom).filter(Classroom.created_by == current_user["user_id"])
+
+    if class_id is not None:
+        student_query = student_query.filter(Student.class_id == class_id)
+
+    students = student_query.all()
 
     result = []
-    for inv in invitations:
-        student = db.query(Student).filter(Student.id == inv.student_id).first()
-        if class_id is not None and (not student or student.class_id != class_id):
-            continue
+    for student in students:
+        inv = db.query(ExamInvitation).filter(
+            ExamInvitation.exam_id == exam_id,
+            ExamInvitation.student_id == student.id
+        ).first()
 
-        link = _resolve_link(inv.unique_exam_link, request)
-        qr_code = inv.qr_code
-        if inv.unique_exam_link and ("localhost" in inv.unique_exam_link or "127.0.0.1" in inv.unique_exam_link):
-            from app.services.qr_service import generate_qr_code_image
-            qr_code = generate_qr_code_image(link)
+        if inv:
+            link = _resolve_link(inv.unique_exam_link, request)
+            qr_code = inv.qr_code
+            if inv.unique_exam_link and ("localhost" in inv.unique_exam_link or "127.0.0.1" in inv.unique_exam_link):
+                from app.services.qr_service import generate_qr_code_image
+                qr_code = generate_qr_code_image(link)
 
-        result.append({
-            "id": inv.id,
-            "exam_id": inv.exam_id,
-            "student_id": inv.student_id,
-            "student_name": student.name if student else "Unknown",
-            "student_email": student.email if student else "",
-            "student_roll": student.roll_number if student else None,
-            "student_class_id": student.class_id if student else None,
-            "qr_code": qr_code,
-            "unique_exam_link": link,
-            "email_sent": inv.email_sent,
-            "email_sent_at": str(inv.email_sent_at) if inv.email_sent_at else None,
-            "is_used": inv.is_used,
-            "created_at": str(inv.created_at),
-        })
+            result.append({
+                "id": inv.id,
+                "exam_id": inv.exam_id,
+                "student_id": student.id,
+                "student_name": student.name,
+                "student_email": student.email,
+                "student_roll": student.roll_number,
+                "student_class_id": student.class_id,
+                "qr_code": qr_code,
+                "unique_exam_link": link,
+                "email_sent": inv.email_sent,
+                "email_sent_at": str(inv.email_sent_at) if inv.email_sent_at else None,
+                "is_used": inv.is_used,
+                "created_at": str(inv.created_at),
+            })
+        else:
+            result.append({
+                "id": None,
+                "exam_id": exam_id,
+                "student_id": student.id,
+                "student_name": student.name,
+                "student_email": student.email,
+                "student_roll": student.roll_number,
+                "student_class_id": student.class_id,
+                "qr_code": None,
+                "unique_exam_link": None,
+                "email_sent": False,
+                "email_sent_at": None,
+                "is_used": False,
+                "created_at": None,
+            })
+
     return result
 
