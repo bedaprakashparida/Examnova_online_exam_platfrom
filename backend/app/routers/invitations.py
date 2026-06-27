@@ -229,6 +229,13 @@ async def send_invitations_email(
         # Filter by class if requested
         if class_id is not None and student.class_id != class_id:
             continue
+
+        link = _resolve_link(inv.unique_exam_link, request)
+        qr_code = inv.qr_code
+        if inv.unique_exam_link and ("localhost" in inv.unique_exam_link or "127.0.0.1" in inv.unique_exam_link):
+            from app.services.qr_service import generate_qr_code_image
+            qr_code = generate_qr_code_image(link)
+
         jobs.append({
             "invitation_id": inv.id,
             "student_email": student.email,
@@ -237,8 +244,8 @@ async def send_invitations_email(
             "duration": exam.duration,
             "start_time": exam.start_time,
             "end_time": exam.end_time,
-            "exam_link": _resolve_link(inv.unique_exam_link, request),
-            "qr_code_base64": inv.qr_code,
+            "exam_link": link,
+            "qr_code_base64": qr_code,
             "smtp_user": smtp_creds["smtp_user"],
             "smtp_password": smtp_creds["smtp_password"],
             "sender_name": smtp_creds["sender_name"],
@@ -316,6 +323,12 @@ async def resend_single_invitation(
     student = db.query(Student).filter(Student.id == inv.student_id).first()
     smtp_creds = _get_teacher_smtp(db, current_user["user_id"])
 
+    link = _resolve_link(inv.unique_exam_link, request)
+    qr_code = inv.qr_code
+    if inv.unique_exam_link and ("localhost" in inv.unique_exam_link or "127.0.0.1" in inv.unique_exam_link):
+        from app.services.qr_service import generate_qr_code_image
+        qr_code = generate_qr_code_image(link)
+
     ok, err = send_exam_invitation_sync(
         student_email=student.email,
         student_name=student.name,
@@ -323,8 +336,8 @@ async def resend_single_invitation(
         duration=exam.duration,
         start_time=exam.start_time,
         end_time=exam.end_time,
-        exam_link=_resolve_link(inv.unique_exam_link, request),
-        qr_code_base64=inv.qr_code,
+        exam_link=link,
+        qr_code_base64=qr_code,
         smtp_user=smtp_creds["smtp_user"],
         smtp_password=smtp_creds["smtp_password"],
         sender_name=smtp_creds["sender_name"],
@@ -392,6 +405,13 @@ def get_exam_invitations(
         student = db.query(Student).filter(Student.id == inv.student_id).first()
         if class_id is not None and (not student or student.class_id != class_id):
             continue
+
+        link = _resolve_link(inv.unique_exam_link, request)
+        qr_code = inv.qr_code
+        if inv.unique_exam_link and ("localhost" in inv.unique_exam_link or "127.0.0.1" in inv.unique_exam_link):
+            from app.services.qr_service import generate_qr_code_image
+            qr_code = generate_qr_code_image(link)
+
         result.append({
             "id": inv.id,
             "exam_id": inv.exam_id,
@@ -400,8 +420,8 @@ def get_exam_invitations(
             "student_email": student.email if student else "",
             "student_roll": student.roll_number if student else None,
             "student_class_id": student.class_id if student else None,
-            "qr_code": inv.qr_code,
-            "unique_exam_link": _resolve_link(inv.unique_exam_link, request),
+            "qr_code": qr_code,
+            "unique_exam_link": link,
             "email_sent": inv.email_sent,
             "email_sent_at": str(inv.email_sent_at) if inv.email_sent_at else None,
             "is_used": inv.is_used,
