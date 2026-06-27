@@ -45,6 +45,17 @@ def _get_frontend_url(request: Request) -> str:
     return settings.FRONTEND_URL
 
 
+def _resolve_link(link: str, request: Request) -> str:
+    if not link:
+        return link
+    if "localhost:5173" in link or "127.0.0.1:5173" in link:
+        frontend_url = _get_frontend_url(request)
+        link = link.replace("http://localhost:5173", frontend_url)
+        link = link.replace("http://127.0.0.1:5173", frontend_url)
+    return link
+
+
+
 
 # ── Test SMTP ──────────────────────────────────────────────────────────────────
 @router.get("/test-smtp")
@@ -178,6 +189,7 @@ def generate_single_invitation(
 async def send_invitations_email(
     exam_id: int,
     background_tasks: BackgroundTasks,
+    request: Request,
     class_id: Optional[int] = Query(None, description="Send only to students in this class"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin),
@@ -225,7 +237,7 @@ async def send_invitations_email(
             "duration": exam.duration,
             "start_time": exam.start_time,
             "end_time": exam.end_time,
-            "exam_link": inv.unique_exam_link,
+            "exam_link": _resolve_link(inv.unique_exam_link, request),
             "qr_code_base64": inv.qr_code,
             "smtp_user": smtp_creds["smtp_user"],
             "smtp_password": smtp_creds["smtp_password"],
@@ -290,6 +302,7 @@ async def send_invitations_email(
 @router.post("/send-email/single/{invitation_id}", status_code=200)
 async def resend_single_invitation(
     invitation_id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin),
 ):
@@ -310,7 +323,7 @@ async def resend_single_invitation(
         duration=exam.duration,
         start_time=exam.start_time,
         end_time=exam.end_time,
-        exam_link=inv.unique_exam_link,
+        exam_link=_resolve_link(inv.unique_exam_link, request),
         qr_code_base64=inv.qr_code,
         smtp_user=smtp_creds["smtp_user"],
         smtp_password=smtp_creds["smtp_password"],
@@ -365,6 +378,7 @@ def verify_qr(payload: QRVerifyRequest, db: Session = Depends(get_db)):
 @router.get("/{exam_id}")
 def get_exam_invitations(
     exam_id: int,
+    request: Request,
     class_id: Optional[int] = Query(None, description="Filter by class"),
     db: Session = Depends(get_db),
     current_user: dict = Depends(require_teacher_or_admin),
@@ -387,7 +401,7 @@ def get_exam_invitations(
             "student_roll": student.roll_number if student else None,
             "student_class_id": student.class_id if student else None,
             "qr_code": inv.qr_code,
-            "unique_exam_link": inv.unique_exam_link,
+            "unique_exam_link": _resolve_link(inv.unique_exam_link, request),
             "email_sent": inv.email_sent,
             "email_sent_at": str(inv.email_sent_at) if inv.email_sent_at else None,
             "is_used": inv.is_used,
